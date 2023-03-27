@@ -101,8 +101,15 @@ public class UpdateContactEventHandler {
 }
 ---------Contact Trigger------------------
 trigger UpdateContactEvent on Contact (after update) {
-    UpdateContactEventHandler.updateEvent(Trigger.new);
-
+	List<Contact> conlist = new List<Contact>();
+	for(Contact ct: Trigger.new){
+		if((ct.FirstName!=trigger.oldmap.get(ct.id).FirstName) || (ct.LastName!=trigger.oldmap.get(ct.id).LastName)){
+			conlist.add(ct);
+		}
+	}
+	if(!conlist.isEmpty()){
+    		UpdateContactEventHandler.updateEvent(Trigger.new);
+	}
 }
 ---------Concert__c Trigger Handler---------
 public class UpdateEventOnConcertHandler {
@@ -152,14 +159,20 @@ public class UpdateEventOnConcertHandler {
 }
 ----------------Concert_c Trigger---------------
 trigger UpdateEventOnConcert on Concert__c (after update) {
+	List<Concert__c> conlist = new List<Concert__c>();
     if(trigger.isafter && trigger.isupdate){
        for(Concert__c cont:trigger.new){
-            if((cont.Name!=trigger.oldmap.get(cont.id).Name) || (cont.Venue__c!=trigger.oldmap.get(cont.id).Venue__c) ||
+            if((cont.Artist__c!=trigger.oldmap.get(cont.id).Artist__c) || (cont.Venue__c!=trigger.oldmap.get(cont.id).Venue__c) ||
                (cont.Number_of_Seats__c!=trigger.oldmap.get(cont.id).Number_of_Seats__c)
                ||(cont.Event_Date__c!=trigger.oldmap.get(cont.id).Event_Date__c)){
-                UpdateEventOnConcertHandler.updateEvent(Trigger.new, Trigger.newmap);
+                conlist.add(cont);
             } 
         }
+	if(!conlist.isEmpty()){
+		for(Concert__c ct: conlist){
+			UpdateEventOnConcertHandler.updateEvent(ct.new, ct.newmap);
+		}
+	}
     }
 	
 }
