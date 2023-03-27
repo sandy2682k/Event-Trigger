@@ -163,3 +163,71 @@ trigger UpdateEventOnConcert on Concert__c (after update) {
     }
 	
 }
+
+--------------------------Utility Class-----------------------
+public class UtilityTriggerClass {
+    public static void utilityTest(){
+        try{
+            //Getting recordtype id of Contact
+            RecordType reclst = [select id, name from recordtype where name = 'Artist'];
+            RecordType customerid = [select id, name from recordtype where name = 'Customer'];
+             // create a contact of artist recordtype
+            Contact contact = new Contact();
+            contact.FirstName = 'Sonu';
+            contact.LastName = 'Nigam';
+            contact.RecordTypeId = reclst.id;
+            insert contact;
+            // create a contact of customer recordtype
+            Contact con = new Contact();
+            con.FirstName = 'Rohit';
+            con.LastName = 'Pant';
+            con.RecordTypeId= customerid.Id;
+            insert con;
+            // create a concert
+            Concert__c concert = new Concert__c();
+            concert.Name = 'Sunrise';
+            concert.Artist__c = contact.Id;
+            concert.Venue__c = 'Haldwani';
+            concert.Event_Date__c = Date.today();
+            insert concert;
+    
+            // create a ticket for the concert and the contact
+            Ticket__c ticket = new Ticket__c();
+            ticket.Concert__c = concert.Id;
+            ticket.Customer__c = con.Id;
+            insert ticket;
+            //getting list of event after ticket insert
+            List<Event> evtlist = [SELECT Id, WhoId, Subject, Location, StartDateTime, Description, WhatId FROM Event WHERE WhoId = :con.Id];
+            Event evt = evtlist[0];
+            System.assertEquals(con.Id, evt.WhoId);
+            //Updating Contact
+            con.LastName = 'Shrma';
+            update con;
+            //Checking Event after Contact Update
+            List<Event> evtlist1 = [SELECT Id, WhoId, Subject, Who.Name, Location, StartDateTime, Description, WhatId FROM Event WHERE WhoId = :con.Id];
+            Event evt1 = evtlist1[0];
+            System.assertEquals('Rohit Shrma', evt1.Who.Name);
+            //Updating Concert__c
+            concert.Name = 'Annual Fest';
+            concert.Venue__c = 'Nanital';
+            update concert;
+            //Checking Event after Concert__c Update
+            List<Event> evtlist2 = [SELECT Id, WhoId, Subject, Who.Name, Location, StartDateTime, Description, WhatId FROM Event WHERE WhoId = :con.Id];
+            Event evt2 = evtlist2[0];
+            System.assertEquals('Annual Fest', evt2.Subject);
+        }
+        catch (Exception ex){
+            system.debug('Error Occur ==' +ex.getMessage());
+        }
+    }
+
+}
+
+----------------Utility Test Class------------
+@isTest
+public class UtilityTest {
+    @isTest
+    static void testingMethod(){
+        UtilityTriggerClass.utilityTest();
+    }
+}
