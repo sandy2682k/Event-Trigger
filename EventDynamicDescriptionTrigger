@@ -107,12 +107,16 @@ trigger UpdateContactEvent on Contact (after update) {
 			conlist.add(ct);
 		}
 	}
+    RecordType conrecordtype = [select id, name from recordtype where name = 'Customer'];
 	if(!conlist.isEmpty()){
 		for(Contact con: conlist){
-    			UpdateContactEventHandler.updateEvent(Trigger.new);
-		}
+		    if(con.recordTypeId == conrecordtype.Id){
+				UpdateContactEventHandler.updateEvent(Trigger.new);
+		    }
+        }
 	}
 }
+
 ---------Concert__c Trigger Handler---------
 public class UpdateEventOnConcertHandler {
     public static void updateEvent(List<Concert__c> newConcerts, Map<Id, Concert__c> newConcertMap){ 
