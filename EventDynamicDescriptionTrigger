@@ -118,12 +118,6 @@ public class UpdateEventOnConcertHandler {
                 	 // Query for all the Ticket__c records related to the updated Concert__c records
                     List<Ticket__c> tickets = [SELECT Id, Customer__c,Concert__c  FROM Ticket__c WHERE Concert__c IN :concertids];
                     system.debug('Ticket =='+tickets);
-                	Set<Id> conids = new Set<Id>();
-                	//Storing contact Ids from ticket__c
-                    for(Ticket__c tc: tickets){
-                        conids.add(tc.Customer__c);
-                    }
-                	system.debug('Contact Id =='+conids);
                     // getting event list to update from contact Ids
                     List<Event> eventsToUpdate = [SELECT Id, WhatId,Description, Subject, ActivityDate, StartDateTime, WhoId,Who.Name, What.Id,What.name
                                                   FROM Event where WhatId =:concertids];
