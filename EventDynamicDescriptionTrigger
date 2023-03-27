@@ -108,7 +108,9 @@ trigger UpdateContactEvent on Contact (after update) {
 		}
 	}
 	if(!conlist.isEmpty()){
-    		UpdateContactEventHandler.updateEvent(Trigger.new);
+		for(Contact con: conlist){
+    			UpdateContactEventHandler.updateEvent(Trigger.new);
+		}
 	}
 }
 ---------Concert__c Trigger Handler---------
@@ -170,7 +172,7 @@ trigger UpdateEventOnConcert on Concert__c (after update) {
         }
 	if(!conlist.isEmpty()){
 		for(Concert__c ct: conlist){
-			UpdateEventOnConcertHandler.updateEvent(ct.new, ct.newmap);
+			UpdateEventOnConcertHandler.updateEvent(Trigger.new, Trigger.newmap);
 		}
 	}
     }
