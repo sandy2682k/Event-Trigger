@@ -148,7 +148,7 @@ public class UpdateEventOnConcertHandler {
 
                 // Get a map of concert names to related events
                Map<String, List<Event>> concertToEventsMap = new Map<String, List<Event>>();
-                for(Event evt : [SELECT Id, WhatId, Description, Subject, ActivityDate, StartDateTime, WhoId, Who.Name, What.Id, What.Name FROM Event WHERE Subject IN :concertNames AND WhoId IN :contactIds]){
+                for(Event evt : [SELECT Id, Description, Subject, ActivityDate, StartDateTime, WhoId, Who.Name FROM Event WHERE Subject IN :concertNames AND WhoId IN :contactIds]){
                     if(!concertToEventsMap.containsKey(evt.Subject)){
                         concertToEventsMap.put(evt.Subject, new List<Event>());
                     }
