@@ -147,18 +147,18 @@ public class UpdateEventOnConcertHandler {
                 Set<Id> contactIds = contactToTicketsMap.keySet();
 
                 // Get a map of concert names to related events
-                Map<String, List<Event>> concertToEventsMap = new Map<String, List<Event>>();
+               Map<String, List<Event>> concertToEventsMap = new Map<String, List<Event>>();
                 for(Event evt : [SELECT Id, WhatId, Description, Subject, ActivityDate, StartDateTime, WhoId, Who.Name, What.Id, What.Name FROM Event WHERE Subject IN :concertNames AND WhoId IN :contactIds]){
-                    if(!concertToEventsMap.containsKey(evt.What.Name)){
-                        concertToEventsMap.put(evt.What.Name, new List<Event>());
+                    if(!concertToEventsMap.containsKey(evt.Subject)){
+                        concertToEventsMap.put(evt.Subject, new List<Event>());
                     }
-                    concertToEventsMap.get(evt.What.Name).add(evt);
+                    concertToEventsMap.get(evt.Subject).add(evt);
                 }
-
                 // Update the events
                 List<Event> eventsToUpdate = new List<Event>();
                 for(Concert__c ct : newConcerts){
-                    if(concertToEventsMap.containsKey(ct.Name)){
+                    for(String st: concertNames){
+                    if(concertToEventsMap.containsKey(st)){
                         List<Event> events = concertToEventsMap.get(ct.Name);
                         for(Event evt : events){
                             evt.Subject = ct.Name;
@@ -169,6 +169,7 @@ public class UpdateEventOnConcertHandler {
                                                 ' on '+evt.StartDateTime +'\n Please Visit! \n' + 'Happy Event!' ;
                             eventsToUpdate.add(evt);
                         }
+                    }
                     }
                 }
 				//Checking eventsToUpdate list and then updating
@@ -181,25 +182,6 @@ public class UpdateEventOnConcertHandler {
             }
         }
     }
-}
-----------------Concert_c Trigger---------------
-trigger UpdateEventOnConcert on Concert__c (after update) {
-	List<Concert__c> conlist = new List<Concert__c>();
-    if(trigger.isafter && trigger.isupdate){
-       for(Concert__c cont:trigger.new){
-            if((cont.Artist__c!=trigger.oldmap.get(cont.id).Artist__c) || (cont.Venue__c!=trigger.oldmap.get(cont.id).Venue__c) ||
-               (cont.Number_of_Seats__c!=trigger.oldmap.get(cont.id).Number_of_Seats__c)
-               ||(cont.Event_Date__c!=trigger.oldmap.get(cont.id).Event_Date__c)){
-                conlist.add(cont);
-            } 
-        }
-	if(!conlist.isEmpty()){
-		for(Concert__c ct: conlist){
-			UpdateEventOnConcertHandler.updateEvent(Trigger.new, Trigger.newmap);
-		}
-	}
-    }
-	
 }
 
 --------------------------Utility Class-----------------------
