@@ -122,6 +122,8 @@ public class UpdateEventOnConcertHandler {
 public static void updateEvent(List<Concert__c> newConcerts, Map<Id, Concert__c> newConcertMap) { 
     if(Schema.SObjectType.Concert__c.isUpdateable()) {
         try {
+		//get set of Concert ids
+		Set<Id> concertids = newConcertMap.keySet();
             // Create a set of all the concert names
             Set<String> concertNames = new Set<String>();
             for(Concert__c ct : newConcerts) {
@@ -131,7 +133,7 @@ public static void updateEvent(List<Concert__c> newConcerts, Map<Id, Concert__c>
             // Get a map of concert names to related tickets and contact IDs to related tickets
             Map<String, List<Ticket__c>> concertToTicketsMap = new Map<String, List<Ticket__c>>();
             Map<Id, List<Ticket__c>> contactToTicketsMap = new Map<Id, List<Ticket__c>>();
-            for(Ticket__c tc : [SELECT Id, Customer__c, Concert__c, Concert__r.Name FROM Ticket__c WHERE Concert__r.Name IN :concertNames]) {
+            for(Ticket__c tc : [SELECT Id, Customer__c, Concert__c, Concert__r.Name FROM Ticket__c WHERE Concert__c IN :concertids]) {
                 if(!concertToTicketsMap.containsKey(tc.Concert__r.Name)) {
                     concertToTicketsMap.put(tc.Concert__r.Name, new List<Ticket__c>());
                 }
