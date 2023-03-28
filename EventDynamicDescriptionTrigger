@@ -246,8 +246,8 @@ public class UtilityTriggerClass {
             Event evt1 = evtlist1[0];
             System.assertEquals('Rohit Shrma', evt1.Who.Name);
             //Updating Concert__c
-            concert.Name = 'Annual Fest';
             concert.Venue__c = 'Nanital';
+	    concert.Event_Date__c = system.today();
             update concert;
             //Checking Event after Concert__c Update
             List<Event> evtlist2 = [SELECT Id, WhoId, Subject, Who.Name, Location, StartDateTime, Description, WhatId FROM Event WHERE WhoId = :con.Id];
