@@ -111,7 +111,7 @@ trigger UpdateContactEvent on Contact (after update) {
 	if(!conlist.isEmpty()){
 		for(Contact con: conlist){
 		    if(con.recordTypeId == conrecordtype.Id){
-				UpdateContactEventHandler.updateEvent(Trigger.new);
+				UpdateContactEventHandler.updateEvent(conlist);
 		    }
         }
 	}
@@ -182,7 +182,25 @@ public static void updateEvent(List<Concert__c> newConcerts, Map<Id, Concert__c>
     }
 }
 }
-
+------------------Concert_c Trigger--------------------
+trigger UpdateEventOnConcert on Concert__c (after update) {
+	List<Concert__c> conlist = new List<Concert__c>();
+    if(trigger.isafter && trigger.isupdate){
+       for(Concert__c cont:trigger.new){
+            if((cont.Artist__c!=trigger.oldmap.get(cont.id).Artist__c) || (cont.Venue__c!=trigger.oldmap.get(cont.id).Venue__c) ||
+               (cont.Number_of_Seats__c!=trigger.oldmap.get(cont.id).Number_of_Seats__c)
+               ||(cont.Event_Date__c!=trigger.oldmap.get(cont.id).Event_Date__c)){
+                conlist.add(cont);
+            } 
+        }
+	if(!conlist.isEmpty()){
+		for(Concert__c ct: conlist){
+			UpdateEventOnConcertHandler.updateEvent(conlist, trigger.newmap);
+		}
+	}
+    }
+	
+}
 --------------------------Utility Class-----------------------
 public class UtilityTriggerClass {
     public static void utilityTest(){
