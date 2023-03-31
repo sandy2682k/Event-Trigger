@@ -1,0 +1,104 @@
+--------------------Insert Ticket for CSV Attached in Email Using Email Service & Send back error CSV file to Email Address----------------------
+global class CreateTicketConcert implements Messaging.InboundEmailHandler {
+	global Messaging.InboundEmailResult handleInboundEmail(Messaging.inboundEmail email, 
+                                                       Messaging.InboundEnvelope env){
+ 
+        // Create an InboundEmailResult object for returning the result of the 
+        // Apex Email Service
+        Messaging.InboundEmailResult result = new Messaging.InboundEmailResult();
+        String myPlainText= '';
+        // Store the email plain text into the local variable 
+        myPlainText = email.plainTextBody;
+       
+        // Check if there is an attachment in the email
+        if(email.binaryAttachments != null && email.binaryAttachments.size() > 0) {
+        // Iterate through the attachments to find the CSV file
+        for(Messaging.Inboundemail.BinaryAttachment attachment : email.binaryAttachments) {
+            // Check if the attachment is a CSV file
+            if(attachment.fileName.endsWith('.csv')) {
+                // Convert the CSV file to a string
+                String csvString = attachment.body.toString();
+                // Split the string into rows
+                List<String> rows = csvString.split('\n');
+                rows.remove(0);
+                // Create a set to store the unique concert names from the CSV
+                    Set<String> concertNames = new Set<String>();
+                    // Iterate through the rows to find the Concert Name, Contact Id, and No of Seats columns
+                    for (String row : rows) {
+                        List<String> columns = row.split(',');
+                        String concertName = columns[0];
+                        String contactId = columns[1];
+                        String noOfSeatsStr = columns[2].trim(); // remove leading/trailing spaces
+                        System.debug('noOfSeatsStr: ' + noOfSeatsStr); // debug statement to check the value
+                        Integer noOfSeats = Integer.valueOf(noOfSeatsStr);
+                        // Add the concert name to the set
+                        concertNames.add(concertName);
+                    }
+                    
+                    // Query the Concert object to get the concert IDs based on the concert names
+                    List<Concert__c> concerts = [SELECT Id, Name, Venue__c,Event_Date__c FROM Concert__c WHERE Name IN :concertNames AND Event_Date__c >= TODAY];
+                    
+                    // Create a map to store the concert IDs by name
+                    Map<String, Id> concertIdsByName = new Map<String, Id>();
+                    for (Concert__c concert : concerts) {
+                        concertIdsByName.put(concert.Name, concert.Id);
+                    }
+
+                    // Iterate through the rows to create new tickets
+                    List<Ticket__c> Ticketlist = new List<Ticket__c>();
+                	List<String> errors = new List<String>();
+                	String errorCsv = 'Concert Name, Contact Id, No. of Seats, Error\n';
+                    for (String row : rows) {
+                        List<String> columns = row.split(',');
+                        String concertName = columns[0];
+                        String contactId = columns[1];
+                        String noOfSeatsStr = columns[2].trim();
+                        Integer noOfSeats = Integer.valueOf(noOfSeatsStr);
+                        Id concert = concertIdsByName.get(concertName);
+                        if (concert != null) {
+                            Ticket__c tc = new Ticket__c();
+        					tc.Concert__c = concert;
+                            tc.Customer__c = contactId;
+                            tc.Number_Of_Tickets__c = noOfSeats;
+                            Ticketlist.add(tc);
+                    	} 
+                        else {
+                            // Add the error to the error CSV
+                            errors.add('Concert name "' + concertName + '" not found or event date is not valid.');
+                            errorCsv += concertName + ',' + contactId + ',' + noOfSeatsStr + ',"Concert name not found or event date is not valid."\n';
+                        }     
+                    }
+                   //Check list is not empty then insert
+                    if(!Ticketlist.isEmpty()){
+                        database.insert(Ticketlist,false);
+                     }
+                    // Email the error CSV to the sender
+                    if (!errors.isEmpty()) {
+                        Messaging.SingleEmailMessage message = new Messaging.SingleEmailMessage();
+                        String[] toAddresses = new String[] {email.fromAddress};
+                        message.setToAddresses(toAddresses);
+                        message.setSubject('Error importing tickets');
+                        message.setPlainTextBody('The following errors occurred while importing tickets:\n\n' + String.join(errors, '\n') + '\n\nPlease fix these errors and try again.');
+                        Messaging.SendEmailResult[] results = Messaging.sendEmail(new Messaging.SingleEmailMessage[] {message});
+                    }
+                // Email the error CSV to the sender
+                  	if (errorCsv != '') {
+                         Messaging.SingleEmailMessage message = new Messaging.SingleEmailMessage();
+                         String[] toAddresses = new String[] {email.fromAddress};
+                         message.setToAddresses(toAddresses);
+                         message.setSubject('Ticket import error report');
+                         // Create the CSV attachment
+                         Messaging.EmailFileAttachment csvAttachment = new Messaging.EmailFileAttachment();
+                         csvAttachment.setFileName('ImportError.csv');
+                         csvAttachment.setBody(Blob.valueOf(errorCsv));
+                         message.setFileAttachments(new Messaging.EmailFileAttachment[] {csvAttachment});
+                         message.setPlainTextBody('The following records could not be imported:\n\n');
+                         Messaging.SendEmailResult[] results = Messaging.sendEmail(new Messaging.SingleEmailMessage[] {message});
+                     }
+				}
+			}
+		}
+        // Return the result for the Apex Email Service 
+      	return result;
+	}
+}
