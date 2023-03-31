@@ -29,7 +29,7 @@ public class DynamicEventHandler {
                 for(Ticket__c tc: ticketlist){
                     Concert__c concert = Concertmap.get(tc.Concert__c);
                     Contact contact = Contactmap.get(tc.Customer__c);
-                    if(concert != null && contact != null && concert.Event_Date__c >= system.today(){
+                    if(concert != null && contact != null && concert.Event_Date__c >= system.today()){
                         Event evt = new Event(); 
                         evt.Subject = concert.Name;
                         evt.StartDateTime = concert.Event_Date__c;
