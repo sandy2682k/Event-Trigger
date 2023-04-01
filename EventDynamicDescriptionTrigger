@@ -31,7 +31,7 @@ public class DynamicEventHandler {
                     Contact contact = Contactmap.get(tc.Customer__c);
                     if(concert != null && contact != null && concert.Event_Date__c >= system.today()){
                         Event evt = new Event(); 
-                        evt.Subject = concert.Name;
+                        evt.Subject = 'Concert Reminder : ' +concert.Name;
                         evt.StartDateTime = concert.Event_Date__c;
                         evt.EndDateTime = concert.Event_Date__c.addHours(5);
                         evt.WhoId = contact.id;
@@ -82,9 +82,11 @@ public class UpdateContactEventHandler {
                                         AND Who.RecordType.Name = 'Customer'];
                 for(Event evt : eventlist) {
                     system.debug('Event ==> '+evt);
+                    String[] subjectParts = evt.Subject.split(':');
+                    String concertName = subjectParts[1].trim();
                     String cot = evt.Who.Name;
                     system.debug('Contact == ' +cot);
-                    evt.Description = 'Hi ' + cot + '\nGreeting! \n' + evt.Subject +' at '+evt.Location+ ' on ' + evt.StartDateTime + '\nPlease visit! \nHappy Event!'; 
+                    evt.Description = 'Hi ' + cot + '\nGreeting! \n' + concertName +' at '+evt.Location+ ' on ' + evt.StartDateTime + '\nPlease visit! \nHappy Event!'; 
                     evntlst.add(evt);
                 }
                 //Updating event
@@ -122,18 +124,18 @@ public class UpdateEventOnConcertHandler {
 public static void updateEvent(List<Concert__c> newConcerts, Map<Id, Concert__c> newConcertMap) { 
     if(Schema.SObjectType.Concert__c.isUpdateable()) {
         try {
-		//get set of Concert ids
-		Set<Id> concertids = newConcertMap.keySet();
-            // Create a set of all the concert names
-            Set<String> concertNames = new Set<String>();
+            // Get a set of all the concert IDs
+            Set<Id> concertIds = newConcertMap.keySet();
+            // Create a List of all the concert names 
+            List<String> concertNames = new List<String>();
             for(Concert__c ct : newConcerts) {
-                concertNames.add(ct.Name);
+                concertNames.add('%'+ct.name+'%');
             }
 
-            // Get a map of concert names to related tickets and contact IDs to related tickets
+            // Get a map of concert names with its related tickets AND contact IDs with its related tickets
             Map<String, List<Ticket__c>> concertToTicketsMap = new Map<String, List<Ticket__c>>();
             Map<Id, List<Ticket__c>> contactToTicketsMap = new Map<Id, List<Ticket__c>>();
-            for(Ticket__c tc : [SELECT Id, Customer__c, Concert__c, Concert__r.Name FROM Ticket__c WHERE Concert__c IN :concertids]) {
+            for(Ticket__c tc : [SELECT Id, Customer__c, Concert__c, Concert__r.Name FROM Ticket__c WHERE Concert__c IN :concertIds]) {
                 if(!concertToTicketsMap.containsKey(tc.Concert__r.Name)) {
                     concertToTicketsMap.put(tc.Concert__r.Name, new List<Ticket__c>());
                 }
@@ -148,13 +150,18 @@ public static void updateEvent(List<Concert__c> newConcerts, Map<Id, Concert__c>
             // Get a set of all the contact IDs
             Set<Id> contactIds = contactToTicketsMap.keySet();
 
-            // Get a map of concert names to related events
+            // Get a map of concert names with related events
             Map<String, List<Event>> concertToEventsMap = new Map<String, List<Event>>();
-            for(Event evt : [SELECT Id, Description, Subject, ActivityDate, StartDateTime, WhoId, Who.Name FROM Event WHERE Subject IN :concertNames AND WhoId IN :contactIds]) {
-                if(!concertToEventsMap.containsKey(evt.Subject)) {
-                    concertToEventsMap.put(evt.Subject, new List<Event>());
+            for(Event evt : [SELECT Id, Description, Subject, ActivityDate, StartDateTime, WhoId, Who.Name FROM Event WHERE WhoId IN :contactIds AND Subject LIKE :concertNames]) {
+                system.debug('event=='+evt);
+                String[] subjectParts = evt.Subject.split(':');
+                if(subjectParts.size() > 1) {
+                    String concertName = subjectParts[1].trim();
+                    if(!concertToEventsMap.containsKey(concertName)) {
+                        concertToEventsMap.put(concertName, new List<Event>());
+                    }
+                    concertToEventsMap.get(concertName).add(evt);
                 }
-                concertToEventsMap.get(evt.Subject).add(evt);
             }
 
             // Update the events
@@ -163,10 +170,12 @@ public static void updateEvent(List<Concert__c> newConcerts, Map<Id, Concert__c>
                 if(concertToEventsMap.containsKey(ct.Name)) {
                     List<Event> events = concertToEventsMap.get(ct.Name);
                     for(Event evt : events) {
+                        String[] subjectParts = evt.Subject.split(':');
+                        String concertName = subjectParts[1].trim();
                         evt.Location = newConcertMap.get(ct.Id).Venue__c;
                         evt.StartDateTime = newConcertMap.get(ct.Id).Event_Date__c;
                         evt.EndDateTime = newConcertMap.get(ct.Id).Event_Date__c.addHours(5);
-                        evt.Description = 'Hi ' + evt.Who.Name + '\n Greeting! \n' + evt.Subject + ' at ' + evt.Location + ' on ' + evt.StartDateTime + '\n Please Visit! \n' + 'Happy Event!' ;
+                        evt.Description = 'Hi ' + evt.Who.Name + '\n Greeting! \n' + concertName + ' at ' + evt.Location + ' on ' + newConcertMap.get(ct.Id).Event_Date__c + '\n Please Visit! \n' + 'Happy Event!' ;
                         eventsToUpdate.add(evt);
                     }
                 }
@@ -176,7 +185,8 @@ public static void updateEvent(List<Concert__c> newConcerts, Map<Id, Concert__c>
             if(!eventsToUpdate.isEmpty()) {
                 database.update(eventsToUpdate);
             }
-        } catch(Exception ex) {
+        } 
+        catch(Exception ex) {
             system.debug('Error Occur ==> ' + ex.getMessage());
         }
     }
