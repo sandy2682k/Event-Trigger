@@ -43,7 +43,7 @@ public class NewBusinessTriggerHandler {
         
                 //Check list then insert
                 if (!updateopp.isEmpty()) {
-                    insert updateopp;
+                    database.insert(updateopp);
                 }
         
                 List<OpportunityLineItem> clonedLineItems = new List<OpportunityLineItem>();
@@ -63,7 +63,7 @@ public class NewBusinessTriggerHandler {
         
                 //Check list of ClonedLineItems then insert
                 if (!clonedLineItems.isEmpty()) {
-                    insert clonedLineItems;
+                    database.insert(clonedLineItems);
                 }
         
             } catch (Exception ex) {
@@ -101,7 +101,7 @@ public class NewBusinessTriggerHandler {
     
                 //Check list then insert
                 if(!updateopp.isEmpty()){
-                    insert updateopp;
+                    database.insert(updateopp);
                 }
     
                 List<OpportunityLineItem> clonedLineItems = new List<OpportunityLineItem>();
@@ -118,7 +118,7 @@ public class NewBusinessTriggerHandler {
     
                 //Check list of cloned LineItems then insert
                 if(!clonedLineItems.isEmpty()){
-                    insert clonedLineItems;
+                    database.insert(clonedLineItems);
                 }
         	} 
             catch(Exception ex){
