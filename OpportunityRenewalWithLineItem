@@ -1,46 +1,16 @@
 ------------------------------Account Opportunity Cloning Trigger Handler------------------------
 public class NewBusinessTriggerHandler { 
-    //Method for inserting NewBusiness Recordtype Opportunity
-    public static void Newbusinessrecordinsert(list<Opportunity> newlist){
-                if(Schema.SObjectType.Opportunity.isAccessible()) {
-        	try {
-                list<Opportunity> insertopp = new list<Opportunity>();
-                //Getting RecordTypeId for New Business & Renewal Record type
-                id NewBusinessRecordId = [select id,name from RecordType where name='New Business'].id;
-                id RenewalId = [select id,name from RecordType where name='Renewal'].id;
-        		//cloning Opportunity to Renewal RecordType
-                for(opportunity renewalobj : newlist){
-                    if(renewalobj.RecordTypeId == NewBusinessRecordId && renewalobj.StageName == 'Closed Won'){
-                        opportunity obj = renewalobj.clone();
-                        obj.RecordTypeId = RenewalId;
-                        obj.StageName = 'Renewal';
-                        obj.Name = renewalobj.Name+'-Renewal';
-                        obj.CloseDate = renewalobj.CloseDate.addDays(30);
-                        obj.Parent_Opportunity__c = renewalobj.id;
-                        insertopp.add(obj);
-                    }
-                }
-                
-                //Check list then insert
-                if(!insertopp.isEmpty()){
-                    insert insertopp;
-                }
-            }
-            catch(Exception ex){
-                system.debug('Error Occur : ' +ex.getMessage());
-            }
-       	}
-       }
-   		//Method for updating NewBusiness Recordtype Opportunity
-       public static void Newbusinessrecordupdate(list<Opportunity> newlist, map<id,Opportunity> oldmap) {
+   		
+    //Method for updating NewBusiness Recordtype Opportunity
+    public static void Newbusinessrecordupdate(list<Opportunity> newlist, map<id,Opportunity> oldmap) {
         if (Schema.SObjectType.Opportunity.isUpdateable()) {
             try {
                 //Getting set of Orignal Opportunity Id
                 Set<Id> originId = oldmap.keySet();
                 list<Opportunity> updateopp = new list<Opportunity>();
                 //Getting RecordTypeId for New Business & Renewal Record type
-                id NewBusinessRecordId = [select id, name from RecordType where name = 'New Business'].id;
-                id RenewalId = [select id, name from RecordType where name = 'Renewal'].id;
+                String OppNewBusinessRt = Schema.SObjectType.Opportunity.getRecordTypeInfosByName().get('New Business').getRecordTypeId();
+                String OppRenewalRt = Schema.SObjectType.Opportunity.getRecordTypeInfosByName().get('Renewal').getRecordTypeId();
                 //Creating Map of OpportunityId with clone Opportunity
                 Map<Id, Opportunity> renewalOpps = new Map<Id, Opportunity>();
                 //Creating set of OpportunityIds Conatins Installation Fee
@@ -52,11 +22,11 @@ public class NewBusinessTriggerHandler {
                 }
         
                 for (Opportunity renewalupdateobj : newlist) {
-                    if (renewalupdateobj.StageName != oldmap.get(renewalupdateobj.id).StageName && renewalupdateobj.RecordTypeId == NewBusinessRecordId && renewalupdateobj.StageName == 'Closed Won') {
+                    if (renewalupdateobj.StageName != oldmap.get(renewalupdateobj.id).StageName && renewalupdateobj.RecordTypeId == OppNewBusinessRt && renewalupdateobj.StageName == 'Closed Won') {
                         // Check if original opportunity has installation fee line item
                         if (oppsWithInstallationFee.contains(renewalupdateobj.Id)) {
                             opportunity obj = renewalupdateobj.clone();
-                            obj.RecordTypeId = RenewalId;
+                            obj.RecordTypeId = OppRenewalRt;
                             obj.StageName = 'Renewal';
                             obj.Name = renewalupdateobj.Name + '-Renewal';
                             obj.CloseDate = renewalupdateobj.CloseDate.addDays(30);
@@ -111,15 +81,14 @@ public class NewBusinessTriggerHandler {
                 Set<Id> originId = oldmap.keySet();
                 list<Opportunity> updateopp = new list<Opportunity>();
             	//Getting RecordTypeId for New Business & Renewal Record type
-                id NewBusinessRecordId = [select id,name from RecordType where name='New Business'].id;
-                id RenewalId = [select id,name from RecordType where name='Renewal'].id;
+                String OppRenewalRt = Schema.SObjectType.Opportunity.getRecordTypeInfosByName().get('Renewal').getRecordTypeId();
             	//Initalising Map of OrignalRenewal OpportunityId with related Clone Renewal Opportunity
                 Map<Id, Opportunity> renewalOpps = new Map<Id, Opportunity>();
     
                 for (opportunity renewalupdateobj : newlist) {
-                    if (renewalupdateobj.StageName != oldmap.get(renewalupdateobj.id).StageName && renewalupdateobj.RecordTypeId == RenewalId && renewalupdateobj.StageName=='Closed Won') {
+                    if (renewalupdateobj.StageName != oldmap.get(renewalupdateobj.id).StageName && renewalupdateobj.RecordTypeId == OppRenewalRt && renewalupdateobj.StageName=='Closed Won') {
                         opportunity obj = renewalupdateobj.clone();
-                        obj.RecordTypeId = RenewalId;
+                        obj.RecordTypeId = OppRenewalRt;
                         obj.StageName = 'Renewal';
                         obj.Name = renewalupdateobj.Name+'-Renewal';
                         obj.CloseDate = renewalupdateobj.CloseDate.addDays(30);
@@ -162,19 +131,16 @@ public class NewBusinessTriggerHandler {
 -------------------------Trigger----------------------------
 
 trigger NewBusiness_Trigger on Opportunity (after insert, after update) {
-  
-   if(trigger.isafter && trigger.isinsert){
-      
-        NewBusinessTriggerHandler.Newbusinessrecordinsert(trigger.new);
-    }
+    String OppNewBusinessRt = Schema.SObjectType.Opportunity.getRecordTypeInfosByName().get('New Business').getRecordTypeId();
+    String OppRenewalRt = Schema.SObjectType.Opportunity.getRecordTypeInfosByName().get('Renewal').getRecordTypeId();
      if(trigger.isafter && trigger.isupdate){
-       
-        NewBusinessTriggerHandler.Newbusinessrecordupdate(trigger.new, trigger.oldmap);
-    } 
-    RecordType renewaltype = [select id, name from recordtype where name = 'Renewal'];
-    for(Opportunity op: trigger.new){
-        if(op.recordTypeId == renewaltype.id){
-            NewBusinessTriggerHandler.Renewalrecordupdate(trigger.new, trigger.oldmap);
-        }
-	}
+       for(Opportunity op: trigger.new){
+             if(op.recordTypeId == OppNewBusinessRt){
+                NewBusinessTriggerHandler.Newbusinessrecordupdate(trigger.new, trigger.oldmap);
+            }
+            if(op.recordTypeId == OppRenewalRt){
+                NewBusinessTriggerHandler.Renewalrecordupdate(trigger.new, trigger.oldmap);
+            }
+		}
+     }   
 }
