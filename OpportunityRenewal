@@ -1,7 +1,7 @@
 -------------------------------Renew Opportunity along with quote Line Item----------------------
 public class NewBusinessTriggerHandler { 
    		
-    //Method for updating NewBusiness Recordtype Opportunity
+    //Method for updating Opportunity of NewBusiness & Renewal RecordType
     public static void Newbusinessrecordupdate(list<Opportunity> newlist, map<id,Opportunity> oldmap) {
         if (Schema.SObjectType.Opportunity.isUpdateable()) {
             try {
