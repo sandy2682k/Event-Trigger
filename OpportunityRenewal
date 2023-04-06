@@ -18,9 +18,10 @@ public class NewBusinessTriggerHandler {
                 
                 // Get the original opportunities with InstallationFee
                 for (OpportunityLineItem lineItem : [SELECT OpportunityId FROM OpportunityLineItem WHERE OpportunityId = :originId AND PricebookEntry.Product2.Name = 'InstallationFee']) {
-                    oppsWithInstallationFee.add(lineItem.OpportunityId);
+               if(lineItem.OpportunityId !=null){
+                  opportunitiesWithInstallationFee.add(lineItem.OpportunityId); // Add the OpportunityId of each returned OpportunityLineItem to the opportunitiesWithInstallationFee set    
                 }
-        
+        }
                 for (Opportunity renewalupdateobj : newlist) {
                     if (renewalupdateobj.StageName != oldmap.get(renewalupdateobj.id).StageName && renewalupdateobj.RecordTypeId == OppNewBusinessRt && renewalupdateobj.StageName == 'Closed Won') {
                         // Check if original opportunity has installation fee line item
@@ -63,13 +64,11 @@ public class NewBusinessTriggerHandler {
                     List<OpportunityLineItem> origLineItems = [SELECT Id, PricebookEntryId, Quantity, UnitPrice, PricebookEntry.Product2.Name, OpportunityId FROM OpportunityLineItem WHERE OpportunityId = :originId];
                     //Iterating over Orignal Opportunity LineItem and Cloning them to put in clone Opportunity
                     for (OpportunityLineItem origLineItem : origLineItems) {
-		    	if(origLineItem.OpportunityId != null){
-				if (origLineItem.PricebookEntry.Product2.Name != 'InstallationFee') { // exclude the installation fee product
-				    OpportunityLineItem clonedLineItem = origLineItem.clone();
-				    clonedLineItem.OpportunityId = renewalOpps.get(origLineItem.OpportunityId).Id;
-				    clonedLineItems.add(clonedLineItem);
-				}
-			}
+                        if (origLineItem.PricebookEntry.Product2.Name != 'InstallationFee') { // exclude the installation fee product
+                            OpportunityLineItem clonedLineItem = origLineItem.clone();
+                            clonedLineItem.OpportunityId = renewalOpps.get(origLineItem.OpportunityId).Id;
+                            clonedLineItems.add(clonedLineItem);
+                        }
                     }
                     system.debug('CloneItem ===>' + clonedLineItems);
                 }
