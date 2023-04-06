@@ -63,11 +63,13 @@ public class NewBusinessTriggerHandler {
                     List<OpportunityLineItem> origLineItems = [SELECT Id, PricebookEntryId, Quantity, UnitPrice, PricebookEntry.Product2.Name, OpportunityId FROM OpportunityLineItem WHERE OpportunityId = :originId];
                     //Iterating over Orignal Opportunity LineItem and Cloning them to put in clone Opportunity
                     for (OpportunityLineItem origLineItem : origLineItems) {
-                        if (origLineItem.PricebookEntry.Product2.Name != 'InstallationFee') { // exclude the installation fee product
-                            OpportunityLineItem clonedLineItem = origLineItem.clone();
-                            clonedLineItem.OpportunityId = renewalOpps.get(origLineItem.OpportunityId).Id;
-                            clonedLineItems.add(clonedLineItem);
-                        }
+		    	if(origLineItem.OpportunityId != null){
+				if (origLineItem.PricebookEntry.Product2.Name != 'InstallationFee') { // exclude the installation fee product
+				    OpportunityLineItem clonedLineItem = origLineItem.clone();
+				    clonedLineItem.OpportunityId = renewalOpps.get(origLineItem.OpportunityId).Id;
+				    clonedLineItems.add(clonedLineItem);
+				}
+			}
                     }
                     system.debug('CloneItem ===>' + clonedLineItems);
                 }
